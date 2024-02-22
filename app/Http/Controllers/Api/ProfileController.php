@@ -100,6 +100,71 @@ class ProfileController extends Controller
 
     }
 
+    /**
+     * Create an API token from username and password
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function createApiTokenFromUserNamePassword(Request $request)
+    {
+        $credentials = $request->only('username', 'password');
+        $accessTokenName = $request->input('username') . "_mobile_access_token_";
+
+        if (Auth::attempt($credentials)) {
+            $user = Auth::user();
+            $lastAccessTokenName = DB::table('oauth_access_tokens')->select('name')->where('user_id', '=', Auth::user()->id)->where('name','like',$accessTokenName . '%')->orderBy('created_at', 'desc')->first();
+            if ($lastAccessTokenName == null) {
+                $order = 0;
+            } else {
+                $parts = explode('_', $lastAccessTokenName->name);
+                $order = end($parts) + 1;
+            }
+
+            $accessTokenName = $accessTokenName . $order;
+            $accessToken = $user->createToken($accessTokenName)->accessToken;
+
+            // Get the ID so we can return that with the payload
+            // $token = DB::table('oauth_access_tokens')->where('user_id', '=', Auth::user()->id)->where('name','=',$accessTokenName)->orderBy('created_at', 'desc')->first();
+            $token = DB::table('oauth_access_tokens')
+                        ->join('users', 'oauth_access_tokens.user_id', '=', 'users.id')
+                        ->select('oauth_access_tokens.*', 'users.first_name', 'users.last_name')
+                        ->where('oauth_access_tokens.user_id', '=', Auth::user()->id)
+                        ->where('oauth_access_tokens.name', '=', $accessTokenName)
+                        ->orderBy('oauth_access_tokens.created_at', 'desc')
+                        ->first();
+
+            $accessTokenData['id'] = $token->id;
+            $accessTokenData['user_full_name'] = $token->first_name . $token->last_name;
+            $accessTokenData['token'] = $accessToken;
+            $accessTokenData['expires_at'] = $token->expires_at;
+            return response()->json(Helper::formatStandardApiResponse('success', $accessTokenData, 'Login successfully.'));
+        }
+        return response()->json(Helper::formatStandardApiResponse('error', null, 'Invalid username or password. Please try again.'));
+    }
+
+     /**
+     * Delete an API token from mobile
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function deleteApiTokenMobile($tokenId) {
+
+        if (!Gate::allows('self.api')) {
+            abort(403);
+        }
+
+        $token = $this->tokenRepository->findForUser(
+            $tokenId, Auth::user()->getAuthIdentifier()
+        );
+
+        if (is_null($token)) {
+            return new Response('', 404);
+        }
+
+        $token->revoke();
+
+        return response()->json(Helper::formatStandardApiResponse('success'));
+    }
 
     /**
      * Delete an API token

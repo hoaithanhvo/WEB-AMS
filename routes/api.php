@@ -55,6 +55,21 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
             ]
         )->name('api.personal-access-token.create');
 
+        // create new api token from username and password
+        Route::post(
+            'personal-access-tokens/create-from-username-password',
+            [Api\ProfileController::class, 'createApiTokenFromUserNamePassword']
+        )->withoutMiddleware(['api']);
+
+        // delete api from mobile
+        Route::delete(
+            'personal-access-tokens/mobile/{tokenId}',
+            [
+                Api\ProfileController::class,
+                'deleteApiTokenMobile'
+            ]
+        );
+
         Route::get('personal-access-tokens',
             [
                 Api\ProfileController::class,
