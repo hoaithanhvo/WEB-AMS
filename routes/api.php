@@ -55,6 +55,21 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
             ]
         )->name('api.personal-access-token.create');
 
+        // create new api token from username and password
+        Route::post(
+            'personal-access-tokens/create-from-username-password',
+            [Api\ProfileController::class, 'createApiTokenFromUserNamePassword']
+        )->withoutMiddleware(['api']);
+
+        // delete api from mobile
+        Route::delete(
+            'personal-access-tokens/mobile/{tokenId}',
+            [
+                Api\ProfileController::class,
+                'deleteApiTokenMobile'
+            ]
+        );
+
         Route::get('personal-access-tokens',
             [
                 Api\ProfileController::class,
@@ -154,6 +169,32 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
         'parameters' => ['category' => 'category_id'],
         ]
     ); // end category API routes
+
+    /**
+     * Account routes
+     */
+    Route::group(['prefix' => 'categories/fields'], function () {
+
+        Route::get('/byid/{id}',
+            [
+                Api\CategoriesController::class, 
+                'getFieldsByCategoryId'
+            ]
+        );
+        Route::post('/update',
+            [
+                Api\CategoriesController::class,
+                'updateFieldAllowedDisplay'
+            ]
+        );
+        Route::get('/all',
+            [
+                Api\CategoriesController::class, 
+                'getFieldsAllCategory'
+            ]
+        )->withoutMiddleware(['api']);;
+
+     }); // end account group
 
      /**
       * Companies API routes
@@ -517,6 +558,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
             'audit'
         ]
         )->name('api.asset.audit');
+
+        Route::post('{id}/transfer',
+        [
+            Api\AssetsController::class, 
+            'transfer'
+        ]
+        );
 
         Route::post('{id}/checkin',
         [

@@ -57,6 +57,7 @@ return [
     'changepassword'  		=> 'Canviar la contrasenya',
     'checkin'  				=> 'Checkin',
     'checkin_from'  		=> 'Checkin from',
+    'transfer'  		    => 'Transfer',
     'checkout'  			=> 'Checkout',
     'checkouts_count'       => 'Checkouts',
     'checkins_count'        => 'Checkins',

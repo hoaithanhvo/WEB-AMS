@@ -9,8 +9,12 @@ use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Category;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+
+use function Amp\Iterator\toArray;
 
 class CategoriesController extends Controller
 {
@@ -232,4 +236,480 @@ class CategoriesController extends Controller
 
         return (new SelectlistTransformer)->transformSelectlist($categories);
     }
+
+    /**
+     * Get all field by Category id
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getFieldsByCategoryId($id)
+    {
+
+        if (!Gate::allows('self.api')) {
+            abort(403);
+        }
+
+        $arrayFields = [
+            // [
+            //     'name' => 'Id',
+            //     'db_column' => 'id'
+            // ],
+            [
+                'name' => 'Asset Tag',
+                'db_column' => 'asset_tag'
+            ],
+            [
+                'name' => 'Model',
+                'db_column' => 'model'
+            ],
+            [
+                'name' => 'Serial Number',
+                'db_column' => 'serial'
+            ],
+            [
+                'name' => 'Asset Name',
+                'db_column' => 'name'
+            ],
+            [
+                'name' => 'Model Number',
+                'db_column' => 'model_number'
+            ],
+            // [
+            //     'name' => 'End of Life',
+            //     'db_column' => 'eol'
+            // ],
+            // [
+            //     'name' => 'Asset End of Life Date',
+            //     'db_column' => 'asset_eol_date'
+            // ],
+            [
+                'name' => 'Status Label',
+                'db_column' => 'status_label'
+            ],
+            [
+                'name' => 'Category',
+                'db_column' => 'category'
+            ],
+            [
+                'name' => 'Manufacturer',
+                'db_column' => 'manufacturer'
+            ],
+            [
+                'name' => 'Supplier',
+                'db_column' => 'supplier'
+            ],
+            [
+                'name' => 'Notes',
+                'db_column' => 'notes'
+            ],
+            [
+                'name' => 'Order Number',
+                'db_column' => 'order_number'
+            ],
+            [
+                'name' => 'Company',
+                'db_column' => 'company'
+            ],
+            [
+                'name' => 'Location',
+                'db_column' => 'location'
+            ],
+            [
+                'name' => 'Default Location',
+                'db_column' => 'rtd_location'
+            ],
+            // [
+            //     'name' => 'Image',
+            //     'db_column' => 'image'
+            // ],
+            // [
+            //     'name' => 'QR Code',
+            //     'db_column' => 'qr'
+            // ],
+            // [
+            //     'name' => 'Alternate Barcode',
+            //     'db_column' => 'alt_barcode'
+            // ],
+            [
+                'name' => 'Assigned To',
+                'db_column' => 'assigned_to'
+            ],
+            [
+                'name' => 'Warranty Months',
+                'db_column' => 'warranty_months'
+            ],
+            [
+                'name' => 'Warranty Expires',
+                'db_column' => 'warranty_expires'
+            ],
+            [
+                'name' => 'Created At',
+                'db_column' => 'created_at'
+            ],
+            [
+                'name' => 'Updated At',
+                'db_column' => 'updated_at'
+            ],
+            [
+                'name' => 'Last Audit Date',
+                'db_column' => 'last_audit_date'
+            ],
+            [
+                'name' => 'Next Audit Date',
+                'db_column' => 'next_audit_date'
+            ],
+            // [
+            //     'name' => 'Deleted At',
+            //     'db_column' => 'deleted_at'
+            // ],
+            [
+                'name' => 'Purchase Date',
+                'db_column' => 'purchase_date'
+            ],
+            [
+                'name' => 'Age',
+                'db_column' => 'age'
+            ],
+            [
+                'name' => 'Last Checkout',
+                'db_column' => 'last_checkout'
+            ],
+            [
+                'name' => 'Expected Checkin',
+                'db_column' => 'expected_checkin'
+            ],
+            [
+                'name' => 'Purchase Cost',
+                'db_column' => 'purchase_cost'
+            ],
+            [
+                'name' => 'Checkin Counter',
+                'db_column' => 'checkin_counter'
+            ],
+            [
+                'name' => 'Checkout Counter',
+                'db_column' => 'checkout_counter'
+            ],
+            [
+                'name' => 'Requests Counter',
+                'db_column' => 'requests_counter'
+            ],
+            // [
+            //     'name' => 'User Can Checkout',
+            //     'db_column' => 'user_can_checkout'
+            // ],
+            // [
+            //     'name' => 'Book Value',
+            //     'db_column' => 'book_value'
+            // ]
+        ];
+
+        $defaultFields = [
+            'model',
+            'serial',
+            'name',
+            'notes',
+            'location'
+        ];
+
+        $fieldsShow = DB::table('category_fields')
+                    ->select('db_column')
+                    ->where('category_id', '=', $id)
+                    ->get();
+
+        foreach ($arrayFields as &$field) {
+            $field['is_displayed'] = 0;
+            if ($fieldsShow->contains('db_column', $field['db_column']) ||
+            in_array($field['db_column'], $defaultFields) && $fieldsShow->isEmpty()) {
+                $field['is_displayed'] = 1;
+            }
+        }
+        
+        // get custom fields by category id
+        $customFields = DB::table('custom_fields as cf')
+        ->select('cf.name', 'cf.db_column', DB::raw('CASE WHEN ctgf.category_id IS NOT NULL THEN true ELSE false END as is_displayed'))
+        ->join('custom_field_custom_fieldset as cfcfs', 'cfcfs.custom_field_id', '=', 'cf.id')
+        ->join('custom_fieldsets as cfs', 'cfs.id', '=', 'cfcfs.custom_fieldset_id')
+        ->join('models as md', 'cfs.id', '=', 'md.fieldset_id')
+        ->leftJoin('category_fields as ctgf', function ($join) {
+            $join->on('ctgf.category_id', '=', 'md.category_id')
+                 ->on('ctgf.db_column', '=', 'cf.db_column');
+        })
+        ->where('md.category_id', '=', $id)
+        ->distinct()
+        ->get();
+
+        $result = array_merge($arrayFields, $customFields->toArray());
+
+        return response()->json(Helper::formatStandardApiResponse('success', $result));
+    }
+
+
+    /**
+     * Update field allowed display by category id
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function updateFieldAllowedDisplay(Request $request)
+    {
+        if (!Gate::allows('self.api')) {
+            abort(403);
+        }
+
+        $listFieldString = $request->input("list_field");
+        $listFieldString = str_replace(['[', ']'], '', $listFieldString);
+        $arrayField = explode(', ', $listFieldString);
+
+        $categoryId = $request->input("category_id");
+
+        // reset settings to default
+        DB::table('category_fields')->where('category_id', $categoryId)->delete();
+
+        // add new settings
+        foreach ($arrayField as $field) {
+            DB::table('category_fields')->insert([
+                'db_column' => $field,
+                'category_id' => $categoryId
+            ]);
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('success'));
+    }
+
+    /**
+     * Get fields all Category
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getFieldsAllCategory()
+    {
+        // Define array to map column names to their respective field names
+        $columnToName = [
+            [
+                'name' => 'Id',
+                'db_column' => 'id'
+            ],
+            [
+                'name' => 'Asset Tag',
+                'db_column' => 'asset_tag'
+            ],
+            [
+                'name' => 'Model',
+                'db_column' => 'model'
+            ],
+            [
+                'name' => 'Serial Number',
+                'db_column' => 'serial'
+            ],
+            [
+                'name' => 'Asset Name',
+                'db_column' => 'name'
+            ],
+            [
+                'name' => 'Model Number',
+                'db_column' => 'model_number'
+            ],
+            [
+                'name' => 'End of Life',
+                'db_column' => 'eol'
+            ],
+            [
+                'name' => 'Asset End of Life Date',
+                'db_column' => 'asset_eol_date'
+            ],
+            [
+                'name' => 'Status Label',
+                'db_column' => 'status_label'
+            ],
+            [
+                'name' => 'Category',
+                'db_column' => 'category'
+            ],
+            [
+                'name' => 'Manufacturer',
+                'db_column' => 'manufacturer'
+            ],
+            [
+                'name' => 'Supplier',
+                'db_column' => 'supplier'
+            ],
+            [
+                'name' => 'Notes',
+                'db_column' => 'notes'
+            ],
+            [
+                'name' => 'Order Number',
+                'db_column' => 'order_number'
+            ],
+            [
+                'name' => 'Company',
+                'db_column' => 'company'
+            ],
+            [
+                'name' => 'Location',
+                'db_column' => 'location'
+            ],
+            [
+                'name' => 'Default Location',
+                'db_column' => 'rtd_location'
+            ],
+            [
+                'name' => 'Image',
+                'db_column' => 'image'
+            ],
+            [
+                'name' => 'QR Code',
+                'db_column' => 'qr'
+            ],
+            [
+                'name' => 'Alternate Barcode',
+                'db_column' => 'alt_barcode'
+            ],
+            [
+                'name' => 'Assigned To',
+                'db_column' => 'assigned_to'
+            ],
+            [
+                'name' => 'Warranty Months',
+                'db_column' => 'warranty_months'
+            ],
+            [
+                'name' => 'Warranty Expires',
+                'db_column' => 'warranty_expires'
+            ],
+            [
+                'name' => 'Created At',
+                'db_column' => 'created_at'
+            ],
+            [
+                'name' => 'Updated At',
+                'db_column' => 'updated_at'
+            ],
+            [
+                'name' => 'Last Audit Date',
+                'db_column' => 'last_audit_date'
+            ],
+            [
+                'name' => 'Next Audit Date',
+                'db_column' => 'next_audit_date'
+            ],
+            [
+                'name' => 'Deleted At',
+                'db_column' => 'deleted_at'
+            ],
+            [
+                'name' => 'Purchase Date',
+                'db_column' => 'purchase_date'
+            ],
+            [
+                'name' => 'Age',
+                'db_column' => 'age'
+            ],
+            [
+                'name' => 'Last Checkout',
+                'db_column' => 'last_checkout'
+            ],
+            [
+                'name' => 'Expected Checkin',
+                'db_column' => 'expected_checkin'
+            ],
+            [
+                'name' => 'Purchase Cost',
+                'db_column' => 'purchase_cost'
+            ],
+            [
+                'name' => 'Checkin Counter',
+                'db_column' => 'checkin_counter'
+            ],
+            [
+                'name' => 'Checkout Counter',
+                'db_column' => 'checkout_counter'
+            ],
+            [
+                'name' => 'Requests Counter',
+                'db_column' => 'requests_counter'
+            ],
+            [
+                'name' => 'User Can Checkout',
+                'db_column' => 'user_can_checkout'
+            ],
+            [
+                'name' => 'Book Value',
+                'db_column' => 'book_value'
+            ]
+        ];
+
+        // Define default fields to be used if no fields are displayed for a category
+        $defaultFields = [
+            [
+                'name' => 'Model',
+                'db_column' => 'model'
+            ],
+            [
+                'name' => 'Serial Number',
+                'db_column' => 'serial'
+            ],
+            [
+                'name' => 'Asset Name',
+                'db_column' => 'name'
+            ],
+            [
+                'name' => 'Model Number',
+                'db_column' => 'model_number'
+            ],
+            [
+                'name' => 'Location',
+                'db_column' => 'location'
+            ],
+        ];
+
+        // Retrieve list of categories that are not deleted
+        $categoryList = DB::table('categories')
+                        ->select('id')
+                        ->whereNull('deleted_at')
+                        ->get();
+
+        // Retrieve displayed fields for each category
+        $displayedFields = DB::table('category_fields as ctf')
+        ->leftJoin('custom_fields as cf', 'cf.db_column', '=', 'ctf.db_column')
+        ->select('ctf.category_id', 'ctf.db_column', 'cf.name')
+        ->get();
+
+        $result = [];
+
+        foreach ($categoryList as $category) {
+            $categoryId = $category->id;
+            $found = false;
+            
+            foreach ($displayedFields as $field) {
+                // Check if the field belongs to the current category
+                if ($field->category_id == $categoryId) {
+                    // If the field name is null, look it up in the columnToName mapping
+                    if (is_null($field->name)) {
+                        $foundField = collect($columnToName)->where('db_column', $field->db_column)->first();
+        
+                        if ($foundField) {
+                            $fieldName = $foundField['name'];
+                        } else {
+                            $fieldName = $field->db_column;
+                        }
+                    } else {
+                        $fieldName = $field->name;
+                    }
+                    // Add the field to the result array
+                    $result[$categoryId][] = ['name' => $fieldName, 'db_column' => $field->db_column];
+                    $found = true;
+                }
+            }
+            
+            // If no displayed fields were found for the category, use default fields
+            if (!$found) {
+                $result[$categoryId] = $defaultFields;
+            }
+        }
+
+        // Return JSON response with the result
+        return response()->json(Helper::formatStandardApiResponse('success', $result));
+    }
+
 }

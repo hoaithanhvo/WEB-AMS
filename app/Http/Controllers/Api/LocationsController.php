@@ -23,7 +23,7 @@ class LocationsController extends Controller
      */
     public function index(Request $request)
     {
-        $this->authorize('view', Location::class);
+        // $this->authorize('view', Location::class);
         $allowed_columns = [
             'id', 'name', 'address', 'address2', 'city', 'state', 'country', 'zip', 'created_at',
             'updated_at', 'manager_id', 'image',

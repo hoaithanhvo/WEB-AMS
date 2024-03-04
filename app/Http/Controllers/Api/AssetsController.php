@@ -882,6 +882,42 @@ class AssetsController extends Controller
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.error')));
     }
 
+    
+    /**
+     * Transfer location an asset
+     *
+     * @param int $assetId
+     * @return JsonResponse
+     */
+    public function transfer(Request $request, $asset_id)
+    {
+        $this->authorize('checkin', Asset::class);
+        $asset = Asset::findOrFail($asset_id);
+        $this->authorize('checkin', $asset);
+
+        $asset->expected_checkin = null;
+        $asset->last_checkout = null;
+        $asset->assigned_to = null;
+        $asset->assignedTo()->disassociate($asset);
+        $asset->accepted = null;
+
+        if ($request->has('name')) {
+            $asset->name = $request->input('name');
+        }
+
+        $asset->location_id = $asset->rtd_location_id;
+
+        if ($request->filled('location_id')) {
+            $asset->location_id = $request->input('location_id');
+        }
+        
+        if ($asset->save()) {
+            return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], 'Asset transfer location successfully'));
+        }
+
+        return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], 'Asset transfer failed'));
+    }
+
 
     /**
      * Checkin an asset

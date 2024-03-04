@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Actionlog;
 use App\Models\Asset;
 use App\Models\Setting;
+use App\Models\Location;
 use Auth;
 
 class AssetObserver
@@ -44,19 +45,30 @@ class AssetObserver
                     $changed[$key]['old'] = $asset->getRawOriginal()[$key];
                     $changed[$key]['new'] = $asset->getAttributes()[$key];
                 }
-	    }
+	        }
 
-	    if (empty($changed)){
-	        return;
-	    }
-
-            $logAction = new Actionlog();
-            $logAction->item_type = Asset::class;
-            $logAction->item_id = $asset->id;
-            $logAction->created_at = date('Y-m-d H:i:s');
-            $logAction->user_id = Auth::id();
-            $logAction->log_meta = json_encode($changed);
-            $logAction->logaction('update');
+            if (empty($changed)){
+                return;
+            } else if (sizeof($changed) == 1 && isset($changed["location_id"])) {
+                $logAction = new Actionlog();
+                $logAction->item_type = Asset::class;
+                $logAction->target_type = Location::class;
+                $logAction->item_id = $asset->id;
+                $logAction->created_at = date('Y-m-d H:i:s');
+                $logAction->user_id = Auth::id();
+                $logAction->log_meta = json_encode($changed);
+                $logAction->location_id = $changed["location_id"]["new"];
+                $logAction->target_id = $changed["location_id"]["new"];
+                $logAction->logaction('transfer');
+            } else {
+                $logAction = new Actionlog();
+                $logAction->item_type = Asset::class;
+                $logAction->item_id = $asset->id;
+                $logAction->created_at = date('Y-m-d H:i:s');
+                $logAction->user_id = Auth::id();
+                $logAction->log_meta = json_encode($changed);
+                $logAction->logaction('update');
+            }
         }
     }
 
