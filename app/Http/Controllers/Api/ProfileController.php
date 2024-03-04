@@ -127,11 +127,19 @@ class ProfileController extends Controller
             // $token = DB::table('oauth_access_tokens')->where('user_id', '=', Auth::user()->id)->where('name','=',$accessTokenName)->orderBy('created_at', 'desc')->first();
             $token = DB::table('oauth_access_tokens')
                         ->join('users', 'oauth_access_tokens.user_id', '=', 'users.id')
-                        ->select('oauth_access_tokens.*', 'users.first_name', 'users.last_name')
+                        ->select('oauth_access_tokens.*', 'users.first_name', 'users.last_name', 'users.permissions')
                         ->where('oauth_access_tokens.user_id', '=', Auth::user()->id)
                         ->where('oauth_access_tokens.name', '=', $accessTokenName)
                         ->orderBy('oauth_access_tokens.created_at', 'desc')
                         ->first();
+
+            $permissions = json_decode($token->permissions);
+
+            if ($permissions->admin == 1) {
+                $accessTokenData['is_admin'] = true;
+            } else {
+                $accessTokenData['is_admin'] = false;
+            }
 
             $accessTokenData['id'] = $token->id;
             $accessTokenData['user_full_name'] = $token->first_name . $token->last_name;
@@ -148,11 +156,6 @@ class ProfileController extends Controller
      * @return \Illuminate\Http\Response
      */
     public function deleteApiTokenMobile($tokenId) {
-
-        if (!Gate::allows('self.api')) {
-            abort(403);
-        }
-
         $token = $this->tokenRepository->findForUser(
             $tokenId, Auth::user()->getAuthIdentifier()
         );

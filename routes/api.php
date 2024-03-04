@@ -170,6 +170,32 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
         ]
     ); // end category API routes
 
+    /**
+     * Account routes
+     */
+    Route::group(['prefix' => 'categories/fields'], function () {
+
+        Route::get('/byid/{id}',
+            [
+                Api\CategoriesController::class, 
+                'getFieldsByCategoryId'
+            ]
+        );
+        Route::post('/update',
+            [
+                Api\CategoriesController::class,
+                'updateFieldAllowedDisplay'
+            ]
+        );
+        Route::get('/all',
+            [
+                Api\CategoriesController::class, 
+                'getFieldsAllCategory'
+            ]
+        )->withoutMiddleware(['api']);;
+
+     }); // end account group
+
      /**
       * Companies API routes
       */
@@ -532,6 +558,13 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
             'audit'
         ]
         )->name('api.asset.audit');
+
+        Route::post('{id}/transfer',
+        [
+            Api\AssetsController::class, 
+            'transfer'
+        ]
+        );
 
         Route::post('{id}/checkin',
         [

@@ -22,7 +22,7 @@ class SuppliersController extends Controller
      */
     public function index(Request $request)
     {
-        $this->authorize('view', Supplier::class);
+        // $this->authorize('view', Supplier::class);
         $allowed_columns = ['
             id',
             'name',
