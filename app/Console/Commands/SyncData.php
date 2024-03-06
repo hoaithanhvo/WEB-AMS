@@ -46,14 +46,15 @@ class SyncData extends Command
     public function handle()
     {
         $lastExecution = Carbon::now();
-        $minSecondExecution = 15;
+        $timeLimit = 15; // 15 seconds
         for ($i = 0; $i < 4; $i++) {
             $this->customLog('-----SYNC DATA START-----', 'info');
             try {
+                // sync IOT data from SQL to MySQL
                 $this->syncIOTDataFromSqlToMySql();
                 $elapsedTime = Carbon::now()->diffInSeconds($lastExecution);
-                if ($elapsedTime < $minSecondExecution) {
-                    $sleepTime = $minSecondExecution - $elapsedTime;
+                if ($elapsedTime < $timeLimit) {
+                    $sleepTime = $timeLimit - $elapsedTime;
                     $this->customLog("Started syncIOTDataFromSqlToMySql() function in $elapsedTime seconds, will wait $sleepTime seconds to run again.", "info");
                     
                     // no sleep at last execution

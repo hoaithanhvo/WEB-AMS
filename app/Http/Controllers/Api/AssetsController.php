@@ -878,13 +878,12 @@ class AssetsController extends Controller
         if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
 
             // update name machine to IOT database if checkout location
-            if (request('checkout_to_type') == 'location') {
-                $asset_location = DB::table('locations')->select('name')->where('id', '=', $asset->location_id)->first();
-                DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
-                    'machine_cd' => $asset_location->name,
-                ]);
-    
-            }
+            // if (request('checkout_to_type') == 'location') {
+            //     $asset_location = DB::table('locations')->select('name')->where('id', '=', $asset->location_id)->first();
+            //     DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
+            //         'machine_cd' => $asset_location->name,
+            //     ]);
+            // }
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
 
@@ -910,15 +909,8 @@ class AssetsController extends Controller
         $asset->assignedTo()->disassociate($asset);
         $asset->accepted = null;
 
-        if ($request->has('name')) {
-            $asset->name = $request->input('name');
-        }
-
-        $asset->location_id = $asset->rtd_location_id;
-
-        if ($request->filled('location_id')) {
-            $asset->location_id = $request->input('location_id');
-        }
+        $asset->location_id = $request->input('location_id');
+        $asset->status_id = $request->input('status_id');
         
         if ($asset->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], 'Asset transfer location successfully'));
@@ -975,11 +967,11 @@ class AssetsController extends Controller
             event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
 
             // delete name machine from IOT database if checkin
-            if ($request->filled('location_id')) {
-                DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
-                    'machine_cd' => null,
-                ]);
-            }
+            // if ($request->filled('location_id')) {
+            //     DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
+            //         'machine_cd' => null,
+            //     ]);
+            // }
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }
 
