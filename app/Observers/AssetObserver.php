@@ -49,7 +49,7 @@ class AssetObserver
 
             if (empty($changed)){
                 return;
-            } else if (sizeof($changed) == 1 && isset($changed["location_id"])) {
+            } else if (sizeof($changed) == 2 && isset($changed["location_id"]) && isset($changed["status_id"])) {
                 $logAction = new Actionlog();
                 $logAction->item_type = Asset::class;
                 $logAction->target_type = Location::class;

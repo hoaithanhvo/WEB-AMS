@@ -673,6 +673,7 @@ class CategoriesController extends Controller
         $displayedFields = DB::table('category_fields as ctf')
         ->leftJoin('custom_fields as cf', 'cf.db_column', '=', 'ctf.db_column')
         ->select('ctf.category_id', 'ctf.db_column', 'cf.name')
+        ->orderBy('ctf.id', 'asc')
         ->get();
 
         $result = [];
@@ -708,8 +709,10 @@ class CategoriesController extends Controller
             }
         }
 
+        $resultString = json_encode($result);
+
         // Return JSON response with the result
-        return response()->json(Helper::formatStandardApiResponse('success', $result));
+        return response()->json(Helper::formatStandardApiResponse('success', $resultString));
     }
 
 }
