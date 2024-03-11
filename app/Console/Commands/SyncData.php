@@ -3,13 +3,9 @@
 namespace App\Console\Commands;
 
 use Carbon\Carbon;
-use DateTime;
 use Exception;
 use Illuminate\Console\Command;
-use Illuminate\Log\Logger;
-use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Log;
 
 class SyncData extends Command
 {
@@ -25,8 +21,14 @@ class SyncData extends Command
      *
      * @var string
      */
-    protected $description = 'This PHP script syncs data from SQL to MySQL in a loop, with a 15-second interval between each execution.
-    ';
+    protected $description = 'This PHP script syncs data from SQL to MySQL in a loop, with a 15-second interval between each execution.';
+
+    /**
+     * The file path for storing lock file.
+     *
+     * @var string
+     */
+    protected $lockFilePath;
 
     /**
      * Create a new command instance.
@@ -36,6 +38,7 @@ class SyncData extends Command
     public function __construct()
     {
         parent::__construct();
+        $this->lockFilePath = base_path('app/Console/Commands/nidec_sync_data.lock');
     }
 
     /**
@@ -45,30 +48,40 @@ class SyncData extends Command
      */
     public function handle()
     {
-        $lastExecution = Carbon::now();
-        $timeLimit = 15; // 15 seconds
-        for ($i = 0; $i < 4; $i++) {
+        while (true) {
+            $timeLimit = $this->getIntervalTime();
             $this->customLog('-----SYNC DATA START-----', 'info');
+            $lastExecution = Carbon::now();
+
             try {
+                // Check if the lock file exists
+                if (file_exists($this->lockFilePath)) {
+                    $this->customLog('Another instance of nidec:sync-data command is already running. Exiting...', 'error');
+                    sleep($timeLimit);
+                    continue;
+                }
+
+                // Create a lock file
+                touch($this->lockFilePath);
+
                 // sync IOT data from SQL to MySQL
                 $this->syncIOTDataFromSqlToMySql();
                 $elapsedTime = Carbon::now()->diffInSeconds($lastExecution);
                 if ($elapsedTime < $timeLimit) {
                     $sleepTime = $timeLimit - $elapsedTime;
                     $this->customLog("Started syncIOTDataFromSqlToMySql() function in $elapsedTime seconds, will wait $sleepTime seconds to run again.", "info");
-                    
-                    // no sleep at last execution
-                    if ($i != 3) {
-                        sleep($sleepTime - 1);
-                    }
+                    sleep($sleepTime);
+
                 } else {
                     $this->customLog("Started syncIOTDataFromSqlToMySql() function in $elapsedTime seconds.", 'warning');
                 }
             } catch (Exception $e) {
                 $this->customLog($e->getMessage(), 'error');
+            } finally {
+                // Remove the lock file
+                unlink($this->lockFilePath);
             }
-           
-            $lastExecution = Carbon::now();
+            
             $this->customLog('-----SYNC DATA END-----', 'info');
         }
     }
@@ -89,9 +102,9 @@ class SyncData extends Command
             // Log error
             throw new Exception($e->getMessage());
         }
-        
     }
 
+    // print log message
     private function customLog($message, $type) {
         $currentDateTime = date("Y-m-d H:i:s");
         $log = '[' . $currentDateTime . '] ';
@@ -105,6 +118,24 @@ class SyncData extends Command
         }
 
         $this->info($log . $message);
+    }
+
+    // get limit time to execute
+    private function getIntervalTime() {
+        $file = base_path('.env');
+        $lines = file($file, FILE_IGNORE_NEW_LINES);
+        $intervalTime = null;
+
+        foreach ($lines as $line) {
+            $parts = explode('=', $line, 2);
+
+            if (count($parts) == 2 && trim($parts[0]) == 'SYNC_DATA_INTERVAL') {
+                $intervalTime = trim($parts[1]);
+                break;
+            }
+        }
+
+        return intval($intervalTime);
     }
 
 }
