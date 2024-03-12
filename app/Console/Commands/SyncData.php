@@ -48,7 +48,7 @@ class SyncData extends Command
      */
     public function handle()
     {
-        set_time_limit(0);
+        ini_set('max_execution_time', 0);
         while (true) {
             $this->customLog('-----SYNC DATA START-----', 'info');
             $timeLimit = $this->getIntervalTime();
@@ -79,6 +79,7 @@ class SyncData extends Command
                 }
             } catch (Exception $e) {
                 $this->customLog($e->getMessage(), 'error');
+                sleep($timeLimit);
             } finally {
                 // Remove the lock file
                 unlink($this->lockFilePath);
