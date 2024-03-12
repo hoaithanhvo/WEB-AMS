@@ -49,8 +49,8 @@ class SyncData extends Command
     public function handle()
     {
         while (true) {
-            $timeLimit = $this->getIntervalTime();
             $this->customLog('-----SYNC DATA START-----', 'info');
+            $timeLimit = $this->getIntervalTime();
             $this->customLog("SYNC_DATA_INTERVAL=$timeLimit", 'info');
             $lastExecution = Carbon::now();
 
@@ -67,7 +67,7 @@ class SyncData extends Command
 
                 // sync IOT data from SQL to MySQL
                 $this->syncIOTDataFromSqlToMySql();
-                $elapsedTime = intval(Carbon::now()->diffInSeconds($lastExecution));
+                $elapsedTime = intval(Carbon::now()->diffInSeconds($lastExecution)) + 1;
                 if ($elapsedTime < $timeLimit) {
                     $sleepTime = $timeLimit - $elapsedTime;
                     $this->customLog("Started syncIOTDataFromSqlToMySql() function in $elapsedTime seconds, will wait $sleepTime seconds to run again.", "info");
@@ -81,9 +81,8 @@ class SyncData extends Command
             } finally {
                 // Remove the lock file
                 unlink($this->lockFilePath);
+                $this->customLog('-----SYNC DATA END-----', 'info');
             }
-            
-            $this->customLog('-----SYNC DATA END-----', 'info');
         }
     }
 
@@ -124,6 +123,7 @@ class SyncData extends Command
     // get interval time to execute
     private function getIntervalTime() {
         $file = base_path('.env');
+        $this->customLog("Environment path: $file", 'info');
         $lines = file($file, FILE_IGNORE_NEW_LINES);
         $intervalTime = null;
 
