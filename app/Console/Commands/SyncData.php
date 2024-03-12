@@ -51,6 +51,7 @@ class SyncData extends Command
         while (true) {
             $timeLimit = $this->getIntervalTime();
             $this->customLog('-----SYNC DATA START-----', 'info');
+            $this->customLog("SYNC_DATA_INTERVAL=$timeLimit", 'info');
             $lastExecution = Carbon::now();
 
             try {
@@ -66,7 +67,7 @@ class SyncData extends Command
 
                 // sync IOT data from SQL to MySQL
                 $this->syncIOTDataFromSqlToMySql();
-                $elapsedTime = Carbon::now()->diffInSeconds($lastExecution);
+                $elapsedTime = intval(Carbon::now()->diffInSeconds($lastExecution));
                 if ($elapsedTime < $timeLimit) {
                     $sleepTime = $timeLimit - $elapsedTime;
                     $this->customLog("Started syncIOTDataFromSqlToMySql() function in $elapsedTime seconds, will wait $sleepTime seconds to run again.", "info");
@@ -120,7 +121,7 @@ class SyncData extends Command
         $this->info($log . $message);
     }
 
-    // get limit time to execute
+    // get interval time to execute
     private function getIntervalTime() {
         $file = base_path('.env');
         $lines = file($file, FILE_IGNORE_NEW_LINES);
