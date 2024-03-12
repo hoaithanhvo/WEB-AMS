@@ -48,6 +48,7 @@ class SyncData extends Command
      */
     public function handle()
     {
+        set_time_limit(0);
         while (true) {
             $this->customLog('-----SYNC DATA START-----', 'info');
             $timeLimit = $this->getIntervalTime();
