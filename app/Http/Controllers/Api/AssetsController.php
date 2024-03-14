@@ -880,6 +880,13 @@ class AssetsController extends Controller
             // update name machine to IOT database if checkout location
             if (request('checkout_to_type') == 'location') {
                 $asset_location = DB::table('locations')->select('name')->where('id', '=', $asset->location_id)->first();
+
+                // remove machine_cd from old asset 
+                DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('machine_cd', $asset_location->name)->update([
+                    'machine_cd' => null,
+                ]);
+
+                // assigned machine_cd to new asset
                 DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
                     'machine_cd' => $asset_location->name,
                 ]);
