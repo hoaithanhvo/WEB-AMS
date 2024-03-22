@@ -115,6 +115,7 @@ class AssetMaintenancesController extends Controller
      */
     public function store(Request $request)
     {
+        Log::debug("Start saving asset maintenance");
         $this->authorize('update', Asset::class);
         // create a new model instance
         $assetMaintenance = new AssetMaintenance();
