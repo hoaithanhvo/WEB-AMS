@@ -12,6 +12,7 @@ use Auth;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Input;
+use Log;
 
 /**
  * This controller handles all actions related to Asset Maintenance for
@@ -144,12 +145,15 @@ class AssetMaintenancesController extends Controller
             $assetMaintenance->asset_maintenance_time = $completionDate->diffInDays($startDate);
         }
 
+        Log::debug("Saving asset maintenance: " . $assetMaintenance);
+   
         // Was the asset maintenance created?
         if ($assetMaintenance->save()) {
+            Log::debug("Saved asset maintenance: " . $assetMaintenance);
             return response()->json(Helper::formatStandardApiResponse('success', $assetMaintenance, trans('admin/asset_maintenances/message.create.success')));
 
         }
-
+        Log::error("Saved asset maintenance ERROR: " . $assetMaintenance->getErrors());
         return response()->json(Helper::formatStandardApiResponse('error', null, $assetMaintenance->getErrors()));
 
     }
