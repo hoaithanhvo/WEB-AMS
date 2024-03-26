@@ -23,6 +23,7 @@ use App\Models\User;
 use Auth;
 use Carbon\Carbon;
 use DB;
+use Log;
 use Illuminate\Http\Request;
 use App\Http\Requests\ImageUploadRequest;
 use Input;
@@ -890,6 +891,7 @@ class AssetsController extends Controller
                 DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
                     'machine_cd' => $asset_location->name,
                 ]);
+                Log::debug('CHECKOUT updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=' . $asset_location->name );
             }
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
@@ -978,6 +980,7 @@ class AssetsController extends Controller
                 DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
                     'machine_cd' => null,
                 ]);
+                Log::debug('CHECKIN updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=null');
             }
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }

@@ -10,6 +10,8 @@ use App\Http\Requests\AssetCheckoutRequest;
 use App\Models\Asset;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
+use DB;
+use Log;
 
 class AssetCheckoutController extends Controller
 {
@@ -90,6 +92,22 @@ class AssetCheckoutController extends Controller
             }
 
             if ($asset->checkOut($target, $admin, $checkout_at, $expected_checkin, e($request->get('note')), $request->get('name'))) {
+                // update name machine to IOT database if checkout location
+                if (request('checkout_to_type') == 'location') {
+                    $asset_location = DB::table('locations')->select('name')->where('id', '=', $asset->location_id)->first();
+
+                    // remove machine_cd from old asset 
+                    DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('machine_cd', $asset_location->name)->update([
+                        'machine_cd' => null,
+                    ]);
+
+                    // assigned machine_cd to new asset
+                    DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
+                        'machine_cd' => $asset_location->name,
+                    ]);
+
+                    Log::debug('CHECKOUT updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=' . $asset_location->name );
+                }
                 return redirect()->route('hardware.index')->with('success', trans('admin/hardware/message.checkout.success'));
             }
 

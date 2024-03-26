@@ -12,6 +12,8 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
 use Illuminate\Support\Facades\View;
+use DB;
+use Log;
 
 class AssetCheckinController extends Controller
 {
@@ -133,6 +135,15 @@ class AssetCheckinController extends Controller
         // Was the asset updated?
         if ($asset->save()) {
             event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
+
+            // delete name machine from IOT database if checkin
+            if ($request->filled('location_id')) {
+                DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
+                    'machine_cd' => null,
+                ]);
+
+                Log::debug('CHECKIN updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=null');
+            }
 
             if ((isset($user)) && ($backto == 'user')) {
                 return redirect()->route('users.show', $user->id)->with('success', trans('admin/hardware/message.checkin.success'));
