@@ -91,6 +91,23 @@ class AssetCheckoutController extends Controller
                 }
             }
 
+            // MOLD: model_id = 3 
+            // prevent 2 asset checkout same machine_cd
+            if (request('checkout_to_type') == 'location' && $asset->model_id == 3) {
+                $asset_location = DB::table('locations')->select('name')->where('id', '=', $request->get('assigned_location'))->first();
+                $location_name = $asset_location->name;
+                $pattern = '/^MC(0[1-9]|[1-9][0-9]|1[0-5][0-9]|16[0-3])$/';
+
+                // check machine from MC01 -> MC163
+                if (preg_match($pattern, $location_name)) {
+                    // remove machine_cd from old asset 
+                    $existed_mc =  DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('machine_cd', $location_name)->first();
+                    if (isset($existed_mc)) {
+                        return redirect()->to("hardware/$assetId/checkout")->with('error', trans('admin/hardware/message.checkout.error') . ": The $existed_mc->machine_cd machine has been checked out by $existed_mc->mold_no");
+                    }
+                }
+            }
+
             if ($asset->checkOut($target, $admin, $checkout_at, $expected_checkin, e($request->get('note')), $request->get('name'))) {
                 // update name machine to IOT database if checkout location
                 if (request('checkout_to_type') == 'location') {
