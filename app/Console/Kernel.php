@@ -25,7 +25,7 @@ class Kernel extends ConsoleKernel
         // $schedule->command('backup:clean')->daily();
         // $schedule->command('snipeit:upcoming-audits')->daily();
         // $schedule->command('auth:clear-resets')->everyFifteenMinutes();
-        $schedule->command('nidec:sync-data')->appendOutputTo(base_path('storage/logs/sync_data.log'));
+        $schedule->command('nidec:sync-data');
     }
 
     /**

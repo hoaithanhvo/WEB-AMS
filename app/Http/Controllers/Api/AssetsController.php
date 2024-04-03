@@ -810,6 +810,7 @@ class AssetsController extends Controller
      */
     public function checkout(AssetCheckoutRequest $request, $asset_id)
     {
+        Log::debug('Start CHECKOUT from mobile');
         $this->authorize('checkout', Asset::class);
         $asset = Asset::findOrFail($asset_id);
 
@@ -875,6 +876,7 @@ class AssetsController extends Controller
 //        }
 
 
+        Log::debug('Saving CHECKOUT from mobile');
 
         if ($asset->checkOut($target, Auth::user(), $checkout_at, $expected_checkin, $note, $asset_name, $asset->location_id)) {
 
@@ -893,6 +895,8 @@ class AssetsController extends Controller
                 ]);
                 Log::debug('CHECKOUT updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=' . $asset_location->name );
             }
+            Log::debug('Saved CHECKOUT from mobile');
+
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
 
@@ -908,6 +912,7 @@ class AssetsController extends Controller
      */
     public function transfer(Request $request, $asset_id)
     {
+        Log::debug('Start TRANSFER from mobile');
         $this->authorize('checkin', Asset::class);
         $asset = Asset::findOrFail($asset_id);
         $this->authorize('checkin', $asset);
@@ -920,8 +925,10 @@ class AssetsController extends Controller
 
         $asset->location_id = $request->input('location_id');
         $asset->status_id = $request->input('status_id');
-        
+
+        Log::debug('Saving TRANSFER from mobile');
         if ($asset->save()) {
+            Log::debug('Saved TRANSFER from mobile');
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], 'Asset transfer location successfully'));
         }
 
@@ -939,6 +946,7 @@ class AssetsController extends Controller
      */
     public function checkin(Request $request, $asset_id)
     {
+        Log::debug('Start CHECKIN from mobile');
         $this->authorize('checkin', Asset::class);
         $asset = Asset::findOrFail($asset_id);
         $this->authorize('checkin', $asset);
@@ -971,6 +979,7 @@ class AssetsController extends Controller
         
         $checkin_at = $request->filled('checkin_at') ? $request->input('checkin_at').' '. date('H:i:s') : date('Y-m-d H:i:s');
 
+        Log::debug('Saving CHECKIN from mobile');
 
         if ($asset->save()) {
             event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
@@ -982,6 +991,7 @@ class AssetsController extends Controller
                 ]);
                 Log::debug('CHECKIN updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=null');
             }
+            Log::debug('Saved CHECKIN from mobile');
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }
 
