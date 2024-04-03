@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use Carbon\Carbon;
+use DateTime;
 use Exception;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
@@ -84,6 +85,7 @@ class SyncData extends Command
                 // Remove the lock file
                 unlink($this->lockFilePath);
                 $this->customLog('-----SYNC DATA END-----', 'info');
+                $this->clearLog();
             }
         }
     }
@@ -108,6 +110,9 @@ class SyncData extends Command
 
     // print log message
     private function customLog($message, $type) {
+        $file = base_path('storage/logs/sync_data.log');
+        $f = fopen($file, 'a+');
+
         $currentDateTime = date("Y-m-d H:i:s");
         $log = '[' . $currentDateTime . '] ';
 
@@ -119,7 +124,8 @@ class SyncData extends Command
             $log = $log . 'INFO: syncIOTDataFromSqlToMySql: ';
         }
 
-        $this->info($log . $message);
+        fwrite($f, $log. $message . "\n");
+        fclose($f);
     }
 
     // get interval time to execute
@@ -139,6 +145,26 @@ class SyncData extends Command
         }
 
         return intval($intervalTime);
+    }
+
+    // clear log after 2 days
+    private function clearLog() {
+        $file = base_path('storage/logs/sync_data.log');
+        $f = fopen($file, 'r+');
+        $line = fgets($f);
+        fclose($f);
+
+        $pattern = '/\[(.*?)\]/';
+        preg_match($pattern, $line, $matches);
+
+        $dateString = $matches[1];
+        $date = DateTime::createFromFormat('Y-m-d H:i:s', $dateString);
+        $now = new DateTime();
+        $diff = $now->diff($date);
+
+        if ($diff->days >= 2) {
+            unlink($file);   
+        }
     }
 
 }
