@@ -8,9 +8,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Transformers\LocationsTransformer;
 use App\Http\Transformers\SelectlistTransformer;
 use App\Models\Location;
+use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
+use Log;
 
 class LocationsController extends Controller
 {
@@ -298,5 +301,32 @@ class LocationsController extends Controller
 
         //return [];
         return (new SelectlistTransformer)->transformSelectlist($paginated_results);
+    }
+
+    /**
+     * Display a listing of the resource for mobile.
+     *
+     * @return \Illuminate\Http\Response
+     */
+    public function getLocationList()
+    {
+        Log::debug("Start getLocationList");
+        try {
+            $locations = DB::table('locations')
+            ->select('id', 'name')
+            ->whereNull('deleted_at')
+            ->orderBy('id', 'asc')
+            ->get();
+            $count = $locations->count();
+            if ($count > 0) { 
+                Log::debug("End getLocationList: $count");
+                return response()->json(Helper::formatStandardApiResponse('success', $locations));
+            }
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+        }
+
+        Log::debug("End getLocationList: list empty locations");
+        return response()->json(Helper::formatStandardApiResponse('error', [], "Location list is empty"));
     }
 }

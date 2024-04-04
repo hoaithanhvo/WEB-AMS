@@ -722,7 +722,12 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
                 'getDataViewAssets'
             ]
             )->name('api.locations.viewassets');
-    
+
+            // get location list from mobile
+            Route::get(
+                'list',
+                [Api\LocationsController::class, 'getLocationList']
+            )->withoutMiddleware(['api']);
         }); 
     
         Route::resource('locations', 

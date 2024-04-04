@@ -33,6 +33,7 @@ use Str;
 use TCPDF;
 use Validator;
 use Route;
+use Exception;
 
 /**
  * This class controls all actions related to assets for
@@ -882,24 +883,29 @@ class AssetsController extends Controller
 
             // update name machine to IOT database if checkout location
             if (request('checkout_to_type') == 'location') {
-                $asset_location = DB::table('locations')->select('name')->where('id', '=', $asset->location_id)->first();
+                try {
+                    $asset_location = DB::table('locations')->select('name')->where('id', '=', $asset->location_id)->first();
 
-                // remove machine_cd from old asset 
-                DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('machine_cd', $asset_location->name)->update([
-                    'machine_cd' => null,
-                ]);
+                    // remove machine_cd from old asset 
+                    DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('machine_cd', $asset_location->name)->update([
+                        'machine_cd' => null,
+                    ]);
 
-                // assigned machine_cd to new asset
-                DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
-                    'machine_cd' => $asset_location->name,
-                ]);
-                Log::debug('CHECKOUT updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=' . $asset_location->name );
+                    // assigned machine_cd to new asset
+                    DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
+                        'machine_cd' => $asset_location->name,
+                    ]);
+                    Log::debug('CHECKOUT updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=' . $asset_location->name );
+                } catch (Exception $e) {
+                    Log::error($e->getMessage());
+                }
             }
-            Log::debug('Saved CHECKOUT from mobile');
 
+            Log::debug('Saved CHECKOUT from mobile');
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.success')));
         }
 
+        Log::debug('Failed CHECKOUT from mobile');
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkout.error')));
     }
 
@@ -932,6 +938,7 @@ class AssetsController extends Controller
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], 'Asset transfer location successfully'));
         }
 
+        Log::debug('Failed TRANSFER from mobile');
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], 'Asset transfer failed'));
     }
 
@@ -983,18 +990,22 @@ class AssetsController extends Controller
 
         if ($asset->save()) {
             event(new CheckoutableCheckedIn($asset, $target, Auth::user(), $request->input('note'), $checkin_at));
-
-            // delete name machine from IOT database if checkin
-            if ($request->filled('location_id')) {
-                DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
-                    'machine_cd' => null,
-                ]);
-                Log::debug('CHECKIN updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=null');
+            try {
+                // delete name machine from IOT database if checkin
+                if ($request->filled('location_id')) {
+                    DB::connection('sqlsrv')->table('T_IOT_MOLD_MASTER')->where('mold_serial', $asset->serial)->update([
+                        'machine_cd' => null,
+                    ]);
+                    Log::debug('CHECKIN updated IOT database: asset with mold_serial='. $asset->serial . ' assigned machine_cd=null');
+                }
+            } catch (Exception $e) {
+                Log::error($e->getMessage());
             }
             Log::debug('Saved CHECKIN from mobile');
             return response()->json(Helper::formatStandardApiResponse('success', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.success')));
         }
 
+        Log::debug('Failed CHECKIN from mobile');
         return response()->json(Helper::formatStandardApiResponse('error', ['asset'=> e($asset->asset_tag)], trans('admin/hardware/message.checkin.error')));
     }
 
