@@ -124,7 +124,7 @@ class SyncData extends Command
             $log = $log . 'INFO: syncIOTDataFromSqlToMySql: ';
         }
 
-        fwrite($f, $log. $message . "\n");
+        fwrite($f, $log. $message . PHP_EOL);
         fclose($f);
     }
 
