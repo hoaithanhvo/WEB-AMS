@@ -13,6 +13,8 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Input;
 use Log;
+use Exception;
+use DB;
 
 /**
  * This controller handles all actions related to Asset Maintenance for
@@ -157,6 +159,54 @@ class AssetMaintenancesController extends Controller
         Log::error("Saved asset maintenance ERROR: " . $assetMaintenance->getErrors());
         return response()->json(Helper::formatStandardApiResponse('error', null, $assetMaintenance->getErrors()));
 
+    }
+
+    /**
+     *  Stores the new asset maintenance from mobile
+     *
+     */
+    public function createNewMaintenance(Request $request)
+    {
+        Log::debug("Start saving asset maintenance");
+        $this->authorize('update', Asset::class);
+        // create a new model instance
+        $asset = Asset::find(e($request->input('asset_id')));
+
+        if (! Company::isCurrentUserHasAccess($asset)) {
+            return response()->json(Helper::formatStandardApiResponse('error', null, 'You cannot add a maintenance for that asset'));
+        }
+
+        // Save the asset maintenance data
+        $asset_id = $request->input('asset_id');
+        $asset_maintenance_type = $request->input('asset_maintenance_type');
+        $supplier_id = $request->input('supplier_id');
+        $title = $request->input('title');
+        $start_date = $request->input('start_date');
+        $user_id = Auth::id();
+
+        Log::debug("Saving asset maintenance: " . $asset_id);
+   
+        // Was the asset maintenance created?
+        try {
+            // Insert new maintence
+            DB::table('asset_maintenances')->insert([
+                'asset_id' => $asset_id,
+                'supplier_id' => $supplier_id,
+                'asset_maintenance_type' => $asset_maintenance_type,
+                'title' => $title,
+                'start_date' => $start_date,
+                'is_warranty' => 0,
+                'user_id' => $user_id,
+                'created_at' => now(),
+                'updated_at' => now()
+            ]);
+
+            Log::debug("Saved asset maintenance: " . $asset_id);
+            return response()->json(Helper::formatStandardApiResponse('success', $asset_id, trans('admin/asset_maintenances/message.create.success')));
+        } catch (Exception $e) {
+            Log::error($e->getMessage());
+            return response()->json(Helper::formatStandardApiResponse('error', null, $e->getMessage()));
+        }
     }
 
     /**
