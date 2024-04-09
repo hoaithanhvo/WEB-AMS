@@ -624,6 +624,14 @@ Route::group(['prefix' => 'v1', 'middleware' => ['api', 'throttle:api']], functi
         ]
         ); // end assets API routes
 
+        Route::group(['prefix' => 'maintenances'], function () {
+            Route::post('create',
+                [
+                    Api\AssetMaintenancesController::class, 
+                    'createNewMaintenance'
+                ]
+            );
+        });
 
       /**
       * Imports API routes
